@@ -29,6 +29,14 @@ These installation instructions are written for Terminal in Mac OS X
    ```bash
    git clone https://github.com/BobbyBoy101/darkSkyTimes.git
    
+* If you are sam and it asks you for username enter:
+   ```bash
+   BobbyBoy101
+   
+* If you are sam and it asks you for password, I have set up a personal access token (classic) for youuuuu. Paste this as the password in order to git clone:
+   ```bash
+   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
+   
 * Create a virtual environment
    ```bash
    pipenv install
@@ -41,7 +49,7 @@ These installation instructions are written for Terminal in Mac OS X
 
 1. After successfully installing the dependencies, you can run the script to generate the Excel spreadsheet.
    ```bash
-   python darkSkyTimes.py
+   python main.py
 2. Follow the prompts to input the desired date range.
 3. The generated Excel spreadsheet will be saved in the project directory.
 
