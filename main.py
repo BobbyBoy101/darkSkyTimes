@@ -5,6 +5,7 @@ import xlsxwriter
 import ephem
 import pytz
 import datetime
+from calendar import monthrange
 
 ROW_OFFSET = 1
 
@@ -17,6 +18,8 @@ lat = '40.7720'
 lon = '-112.1012'
 start_date = parser.parse(input("Enter the start date (YYYY/MM/DD): "))
 end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
+# start_date = parser.parse('2023/01/01')
+# end_date = parser.parse('2023/02/01')
 
 obs.lat = lat
 obs.lon = lon
@@ -99,28 +102,36 @@ def main():
     #  for row in range(31):
     for row, moon_set_sheet in enumerate(moonset_times):
         day_sheet = row + ROW_OFFSET
-        # if you want to verify that the day matches the row
         moon_set_tz = moon_set_sheet.replace(tzinfo=pytz.timezone('UTC'))
         moon_set = moon_set_tz.astimezone(pytz.timezone('US/Mountain'))
         moon_set_str = moon_set.strftime('%Y/%m/%d %H:%M %p')
-        moon_day = moon_set.astimezone(pytz.timezone('US/Mountain')).day
-        if moon_set.astimezone(pytz.timezone('US/Mountain')).day != day_sheet:
-            moon_set_str = ' '
+        local_moon_set_day = moon_set.astimezone(pytz.timezone('US/Mountain')).day
+
         moon_rise_tz = moonrise_times[row].replace(tzinfo=pytz.timezone('UTC'))
         moon_rise = moon_rise_tz.astimezone(pytz.timezone('US/Mountain'))
         moon_rise_str = moon_rise.strftime('%Y/%m/%d %H:%M %p')
-        if moon_rise.astimezone(pytz.timezone('US/Mountain')).day != day_sheet:
-            moon_rise_str = ' '
+        local_moon_rise_day = moon_rise.astimezone(pytz.timezone('US/Mountain')).day + 1
+        moon_rise_month = moon_rise.astimezone(pytz.timezone('US/Mountain')).month
+        moon_rise_year = moon_rise.astimezone(pytz.timezone('US/Mountain')).year
+        first, last = monthrange(moon_rise_year, moon_rise_month)
+        if local_moon_rise_day > last:
+            local_moon_rise_day = local_moon_rise_day - last
 
         end_twilight_sheet = end_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M %p')
         begin_twilight_sheet = begin_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M %p')
         duration_sheet = row + 7
 
         worksheet.write('A' + str(rowIndex + 1), day_sheet, cell_format)
-        worksheet.write('B' + str(rowIndex + 1), moon_set_str, cell_format)
+        if local_moon_set_day != day_sheet:
+            worksheet.write('B' + str(rowIndex), moon_set_str, cell_format)
+        else:
+            worksheet.write('B' + str(rowIndex + 1), moon_set_str, cell_format)
         worksheet.write('C' + str(rowIndex), end_twilight_sheet, cell_format)
         worksheet.write('D' + str(rowIndex), begin_twilight_sheet, cell_format)
-        worksheet.write('E' + str(rowIndex), moon_rise_str, cell_format)
+        if local_moon_rise_day != day_sheet:
+            worksheet.write('E' + str(rowIndex-1), moon_rise_str, cell_format)
+        else:
+            worksheet.write('E' + str(rowIndex), moon_rise_str, cell_format)
         worksheet.write('F' + str(rowIndex), duration_sheet, cell_format)
 
         rowIndex += 1
