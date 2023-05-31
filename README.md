@@ -3,8 +3,7 @@
 The darkSkyTimes repository allows users to easily determine the times when the sky is the darkest (i.e. between the times of astronomical twilight end and start, along with the absence of the moon for a desired location).
 ## Description
 
-The purpose of darkSkyTimes is to help identify the times when there is an absence of astronomical twilight along with an absence of the moon. Based on user-defined location (lat/lon) and date range (YYYY/MM/DD), darkSkyTimes calculates and outputs an Excel file containing the moon set, astronomical twilight end, astronomical twilight start, and moon rise times for the entire date range inputted by the user. Ideally, darkSkyTimes can be used to determine the ideal times when the convergance of when the sun, astronomical twilight, and the moons presence in the sky are not visibl and indicate the most optimal times to view the night sky imaginable. 
-
+The purpose of darkSkyTimes is to help identify when there is an absence of astronomical twilight and the moon. Based on user-defined location (lat/lon) and date range (YYYY/MM/DD), darkSkyTimes calculates and outputs an Excel file containing the moon set, astronomical twilight end, astronomical twilight start, and moon rise times for the entire date range inputted by the user. With the information provided in the Excel file, users can easily determine the optimal times when they can observe the darkest skies for the location and date range that they inputted.
 ## Getting Started
 ### Dependencies
 * Python3
