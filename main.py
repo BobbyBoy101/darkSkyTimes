@@ -16,10 +16,10 @@ obs = ephem.Observer()
 #  lon = input("Enter your longitude: ")
 lat = '40.7720'
 lon = '-112.1012'
-start_date = parser.parse(input("Enter the start date (YYYY/MM/DD): "))
-end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
-# start_date = parser.parse('2023/01/01')
-# end_date = parser.parse('2023/02/01')
+#  start_date = parser.parse(input("Enter the start date (YYYY/MM/DD): "))
+#  end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
+start_date = parser.parse('2023/04/01')
+end_date = parser.parse('2023/05/01')
 
 obs.lat = lat
 obs.lon = lon
@@ -40,7 +40,6 @@ while current_utc < end_utc:
     # Calculate the moonrise and moonset times
     obs.horizon = '0'
     moonset_time = obs.next_setting(ephem.Moon(), start=current_utc)
-
     moonrise_time = obs.previous_rising(ephem.Moon(), start=current_utc)
 
     # Calculate the astronomical twilight times
@@ -58,7 +57,8 @@ while current_utc < end_utc:
     obs.date = moonset_time
     moonset_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
 
-    moonset_times.append(moonset_time.datetime())  # add the local time zone moonset time to the list
+    # add the local time zone moonset time to the list
+    moonset_times.append(moonset_time.datetime())
     end_twilight_times.append(end_twilight.datetime())
     begin_twilight_times.append(begin_twilight.datetime())
     moonrise_times.append(moonrise_time.datetime())
@@ -74,7 +74,7 @@ while current_utc < end_utc:
 
 
 def main():
-    workbook = xlsxwriter.Workbook("sheetTest3.xlsx")
+    workbook = xlsxwriter.Workbook("darkSkyTimes.xlsx")
 
     bold_format = workbook.add_format({'bold': True})
 
@@ -92,8 +92,8 @@ def main():
     #  create headers using cell location, then what you want to name it
     worksheet.write('A2', 'Day', bold_format)
     worksheet.write('B2', 'Moon Set', bold_format)
-    worksheet.write('C2', 'Astro. Twilight END', bold_format)
-    worksheet.write('D2', 'Astro. Twilight START', bold_format)
+    worksheet.write('C2', 'Astronomical Twilight END', bold_format)
+    worksheet.write('D2', 'Astronomical Twilight START', bold_format)
     worksheet.write('E2', 'Moon Rise', bold_format)
     worksheet.write('F2', 'Duration', bold_format)
 
@@ -138,13 +138,14 @@ def main():
 
         # print(day_sheet, moon_set_sheet, end_twilight_sheet, start_twilight_sheet, moon_rise_sheet, duration_sheet)
 
-    #  Set column size. Numbering starts at 0, so to resize column A do 0,0
-    worksheet.set_column(0, 0, width=3)
-    worksheet.set_column(1, 1, width=20)
-    worksheet.set_column(2, 2, width=20)
-    worksheet.set_column(3, 3, width=20)
-    worksheet.set_column(4, 4, width=20)
-    worksheet.set_column(5, 5, width=7)
+
+    #  Set column size. Numbering starts at 0
+    worksheet.set_column('A:A', 5)
+    worksheet.set_column('B:B', 20)
+    worksheet.set_column('C:C', 26)
+    worksheet.set_column('D:D', 29)
+    worksheet.set_column('E:E', 20)
+    worksheet.set_column('F:F', 9)
     workbook.close()
 
 

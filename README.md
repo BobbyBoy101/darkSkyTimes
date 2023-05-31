@@ -1,9 +1,9 @@
 # darkSkyTimes
 
-The darkSkyTimes repository generates an Excel spreadsheet with precise astronomical data, enabling users to easily identify the darkest moments of the night sky by inputting a date range and latitude/longitude coordinates.
+The darkSkyTimes repository allows users to easily determine the times when the sky is the darkest (i.e. between the times of astronomical twilight end and start, along with the absence of the moon for a desired location).
 ## Description
 
-The darkSkyTimes repository empowers users to effortlessly determine the optimal moments of darkness during the night sky. By inputting a desired date range and latitude/longitude coordinates, this project generates an Excel spreadsheet that meticulously captures crucial astronomical information. Each entry in the spreadsheet corresponds to an individual day within the specified range and provides precise data on astronomical twilight start, astronomical twilight end, moon rise, and moon set. The primary objective of darkSkyTimes is to facilitate the identification of ideal periods when the absence of sunlight, astronomical twilight, and the moon's presence converge, resulting in the darkest skies imaginable.
+The purpose of darkSkyTimes is to help identify the times when there is an absence of astronomical twilight along with an absence of the moon. Based on user-defined location (lat/lon) and date range (YYYY/MM/DD), darkSkyTimes calculates and outputs an Excel file containing the moon set, astronomical twilight end, astronomical twilight start, and moon rise times for the entire date range inputted by the user. Ideally, darkSkyTimes can be used to determine the ideal times when the convergance of when the sun, astronomical twilight, and the moons presence in the sky are not visibl and indicate the most optimal times to view the night sky imaginable. 
 
 ## Getting Started
 ### Dependencies
