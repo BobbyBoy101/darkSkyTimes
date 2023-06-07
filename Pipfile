@@ -9,6 +9,7 @@ ephem = "*"
 xlsxwriter = "*"
 datetime = "*"
 python-dateutil = "*"
+openpyxl = "*"
 
 [dev-packages]
 
