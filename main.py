@@ -135,7 +135,6 @@ def main():
 
         end_twilight_sheet = end_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M')
         begin_twilight_sheet = begin_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M')
-        duration_sheet = row + 7
 
         worksheet.write('A' + str(rowIndex + 1), day_sheet, cell_header_format)
         if local_moon_set_day != day_sheet:
@@ -148,7 +147,6 @@ def main():
             worksheet.write('E' + str(rowIndex - 1), moon_rise_str, time_format)
         else:
             worksheet.write('E' + str(rowIndex), moon_rise_str, time_format)
-        worksheet.write('F' + str(rowIndex), duration_sheet, cell_header_format)
 
         rowIndex += 1
 
