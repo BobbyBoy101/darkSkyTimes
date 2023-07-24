@@ -23,8 +23,8 @@ end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
 """
 lat = '40.7720'
 lon = '-112.1012'
-start_date = parser.parse('2023/04/01')
-end_date = parser.parse('2023/05/01')
+start_date = parser.parse('2023/05/01')
+end_date = parser.parse('2023/06/01')
 
 obs.lat = lat
 obs.lon = lon
