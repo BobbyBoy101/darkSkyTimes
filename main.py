@@ -54,6 +54,7 @@ while current_utc < end_utc:
     end_twilight = obs.next_setting(ephem.Sun(), start=current_utc, use_center=True)
 
     # Convert the UTC times to the observer's local timezone
+    # Included %Y/%m/%d to help with troubleshooting
     obs.date = begin_twilight
     begin_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
     obs.date = end_twilight
@@ -69,6 +70,7 @@ while current_utc < end_utc:
     begin_twilight_times.append(begin_twilight.datetime())
     moonrise_times.append(moonrise_time.datetime())
 
+    # Terminal printout to help with troubleshooting
     print('Begin astronomical twilight:', begin_twilight)
     print('End astronomical twilight:', end_twilight)
     print('Moonrise time:', moonrise_time)
