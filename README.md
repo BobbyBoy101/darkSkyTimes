@@ -1,7 +1,7 @@
 # darkSkyTimes
 
 The darkSkyTimes repository allows users to easily determine the times when the sky is the darkest (i.e. between the times of astronomical twilight end and start, along with the absence of the moon for a desired location).
-See [darkSkyTimes Spreadsheet](https://docs.google.com/spreadsheets/d/1zugeXoZa5sBE6m_lrT_GuBVa4WlSYYqj/edit?usp=sharing&ouid=100268276014596868717&rtpof=true&sd=true) for example. 
+
 ## Description
 
 The darkSkyTimes repository empowers users to effortlessly determine the optimal moments of darkness during the night sky. By inputting a desired date range and latitude/longitude coordinates, this project generates an Excel spreadsheet that meticulously captures crucial astronomical information. Each entry in the spreadsheet corresponds to an individual day within the specified range and provides precise data on astronomical twilight start, astronomical twilight end, moon rise, and moon set. The primary objective of darkSkyTimes is to facilitate the identification of ideal periods when the absence of sunlight, astronomical twilight, and the moon's presence converge, resulting in the darkest skies imaginable.
@@ -9,6 +9,14 @@ The darkSkyTimes repository empowers users to effortlessly determine the optimal
 ***DISCLAIMER: Work in Progress*** 
 
 *Please be aware that this project is a work in progress and is not considered complete at this stage. It may be undergoing active development, and significant changes could occur. The code, documentation, and other project assets presented here are subject to continuous improvements, updates, and enhancements. As such, I cannot guarantee the stability, reliability, or completeness of the current state of the project. I strongly advise against using this project in a production environment or for critical tasks at this time. It may contain bugs, security vulnerabilities, or incomplete features that could lead to unexpected behavior or data loss.*
+
+***Example of what this project aims to accomplish:***
+
+![End goal of darkSkyTimes](End_goal.jpg)
+
+***Where this project is now***
+
+![Current darkSkyTimes](Current_May.jpg)
 
 ## Getting Started
 ### Dependencies
