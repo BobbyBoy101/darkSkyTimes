@@ -29,18 +29,22 @@ These installation instructions are written for Terminal in Mac OS X
 
 * Run Terminal by navigating to Applications -> Utilities -> Terminal. You can also run Terminal by first pressing Command + Space Bar on your Mac, then typing in 'Terminal' and then pressing enter. 
 
-* Use Terminal to create a new folder on your local machine where the repository will be cloned. In this example, I will create a folder named 'darkSkyTimes' on my desktop by running these commands:
+* Use Terminal to create a new folder on your local machine where the repository will be cloned. In this example, I will create a folder named 'Dark_Sky_Times' on my desktop by running these commands:
    ```bash
    cd Desktop
-   mkdir darkSkyTimes
+   mkdir Dark_Sky_Times
 
-* Navigate to the project directory:
+* Navigate to the new folder that you just created on your desktop project directory:
    ```bash
-   cd darkSkyTimes
+   cd Dark_Sky_Times
    
 * Clone the repository to your local machine using the following command:
    ```bash
    git clone https://github.com/BobbyBoy101/darkSkyTimes.git
+
+* Navigate to the project directory:
+   ```bash
+   cd darkSkyTimes
    
 * Create a virtual environment
    ```bash
