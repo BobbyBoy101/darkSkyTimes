@@ -54,7 +54,6 @@ while current_utc < end_utc:
     end_twilight = obs.next_setting(ephem.Sun(), start=current_utc, use_center=True)
 
     # Convert the UTC times to the observer's local timezone
-    # Included %Y/%m/%d to help with troubleshooting
     obs.date = begin_twilight
     begin_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
     obs.date = end_twilight
@@ -110,6 +109,7 @@ def main():
         day_sheet = row + ROW_OFFSET
         moon_set_tz = moon_set_sheet.replace(tzinfo=pytz.timezone('UTC'))
         moon_set = moon_set_tz.astimezone(pytz.timezone('US/Mountain'))
+        # Included %Y/%m/%d to help with troubleshooting
         moon_set_str = moon_set.strftime('%Y/%m/%d %H:%M')
         local_moon_set_day = moon_set.astimezone(pytz.timezone('US/Mountain')).day
 
@@ -127,6 +127,7 @@ def main():
         """
         moon_rise_tz = moonrise_times[row].replace(tzinfo=pytz.timezone('UTC'))
         moon_rise = moon_rise_tz.astimezone(pytz.timezone('US/Mountain'))
+        # Included %Y/%m/%d to help with troubleshooting
         moon_rise_str = moon_rise.strftime('%Y/%m/%d %H:%M')
         local_moon_rise_day = moon_rise.astimezone(pytz.timezone('US/Mountain')).day + 1
         moon_rise_month = moon_rise.astimezone(pytz.timezone('US/Mountain')).month
@@ -135,7 +136,9 @@ def main():
         if local_moon_rise_day > last:
             local_moon_rise_day = local_moon_rise_day - last
 
+        # Included %Y/%m/%d to help with troubleshooting
         end_twilight_sheet = end_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M')
+        # Included %Y/%m/%d to help with troubleshooting
         begin_twilight_sheet = begin_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M')
 
         worksheet.write('A' + str(rowIndex + 1), day_sheet, cell_header_format)
