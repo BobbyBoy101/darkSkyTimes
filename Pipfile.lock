@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "a5b99fea6164d3fed2c868a84c76c5930050ab316a22b8220ae78f6638333227"
+            "sha256": "11fa82375716e0c787701e9fb55f66fa7bccec9310c529576592b5be36b16a35"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -18,11 +18,11 @@
     "default": {
         "datetime": {
             "hashes": [
-                "sha256:97f5ec489e75e26c2e7b4e4b37dc001389814dca1f14ec046c7f9270cf3cee9e",
-                "sha256:a4191a3193c1ca4dbbaad5c958f940b9256864ba2613a53038d1613d3f63262d"
+                "sha256:25250fb36f7184dad805faaf3f012e0b36f353cd97518e8f232babef5c53596e",
+                "sha256:63194d2184de10e0b41e76596ba6538bd1d89db6f7b3c182789c75b0ac5c6697"
             ],
             "index": "pypi",
-            "version": "==5.1"
+            "version": "==5.2"
         },
         "ephem": {
             "hashes": [
@@ -131,11 +131,11 @@
         },
         "setuptools": {
             "hashes": [
-                "sha256:5df61bf30bb10c6f756eb19e7c9f3b473051f48db77fddbe06ff2ca307df9a6f",
-                "sha256:62642358adc77ffa87233bc4d2354c4b2682d214048f500964dbe760ccedf102"
+                "sha256:3d4dfa6d95f1b101d695a6160a7626e15583af71a5f52176efa5d39a054d475d",
+                "sha256:3d8083eed2d13afc9426f227b24fd1659489ec107c0e86cec2ffdde5c92e790b"
             ],
-            "markers": "python_version >= '3.7'",
-            "version": "==67.8.0"
+            "markers": "python_version >= '3.8'",
+            "version": "==68.1.2"
         },
         "six": {
             "hashes": [
@@ -144,6 +144,14 @@
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3'",
             "version": "==1.16.0"
+        },
+        "tzlocal": {
+            "hashes": [
+                "sha256:46eb99ad4bdb71f3f72b7d24f4267753e240944ecfc16f25d2719ba89827a803",
+                "sha256:f3596e180296aaf2dbd97d124fe76ae3a0e3d32b258447de7b939b3fd4be992f"
+            ],
+            "index": "pypi",
+            "version": "==5.0.1"
         },
         "xlsxwriter": {
             "hashes": [

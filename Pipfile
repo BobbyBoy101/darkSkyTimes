@@ -10,6 +10,7 @@ xlsxwriter = "*"
 datetime = "*"
 python-dateutil = "*"
 openpyxl = "*"
+tzlocal = "*"
 
 [dev-packages]
 

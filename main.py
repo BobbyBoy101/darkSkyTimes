@@ -8,79 +8,83 @@ import datetime
 from calendar import monthrange
 from openpyxl import load_workbook
 from openpyxl.styles import numbers
+import tzlocal
 
-ROW_OFFSET = 1
 
-# Make an observer
-obs = ephem.Observer()
 
-"""
-Disabled lat/lon and date input prompt so you don't have to type them in every time while troubleshooting
-lat = input("Enter your latitude: ")
-lon = input("Enter your longitude: ")
-start_date = parser.parse(input("Enter the start date (YYYY/MM/DD): "))
-end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
-"""
-lat = '40.7720'
-lon = '-112.1012'
-start_date = parser.parse('2023/05/01')
-end_date = parser.parse('2023/06/01')
-
-obs.lat = lat
-obs.lon = lon
-start_utc = ephem.Date(start_date)
-end_utc = ephem.Date(end_date + relativedelta(days=1))
-
-current_utc = start_utc
-
-moonset_times = []
-end_twilight_times = []
-begin_twilight_times = []
-moonrise_times = []
-
-# Note: The Ephem library ALWAYS uses Universal Time (UTC), never the local time zone, which complicates things
-while current_utc < end_utc:
-
-    obs.date = current_utc
-
-    # Calculate the moonrise and moonset times
-    obs.horizon = '0'
-    moonset_time = obs.next_setting(ephem.Moon(), start=current_utc)
-    moonrise_time = obs.previous_rising(ephem.Moon(), start=current_utc)
-
-    # Calculate the astronomical twilight times (when sun is -18 below horizon)
-    obs.horizon = '-18'
-    begin_twilight = obs.previous_rising(ephem.Sun(), start=current_utc, use_center=True)
-    end_twilight = obs.next_setting(ephem.Sun(), start=current_utc, use_center=True)
-
-    # Convert the UTC times to the observer's local timezone
-    obs.date = begin_twilight
-    begin_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-    obs.date = end_twilight
-    end_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-    obs.date = moonrise_time
-    moonrise_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-    obs.date = moonset_time
-    moonset_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-
-    # Add the local time zone moonset/rise and astronomical twilight begin/end times to the list
-    moonset_times.append(moonset_time.datetime())
-    end_twilight_times.append(end_twilight.datetime())
-    begin_twilight_times.append(begin_twilight.datetime())
-    moonrise_times.append(moonrise_time.datetime())
-
-    # Terminal printout to help with troubleshooting
-    print('Begin astronomical twilight:', begin_twilight)
-    print('End astronomical twilight:', end_twilight)
-    print('Moonrise time:', moonrise_time)
-    print('Moonset time:', moonset_time)
-    print()
-
-    # Increment the current date by one day
-    current_utc += 1
 
 
 def main():
+    ROW_OFFSET = 1
+
+    # Make an observer
+    obs = ephem.Observer()
+
+    """
+    Disabled lat/lon and date input prompt so you don't have to type them in every time while troubleshooting
+    lat = input("Enter your latitude: ")
+    lon = input("Enter your longitude: ")
+    start_date = parser.parse(input("Enter the start date (YYYY/MM/DD): "))
+    end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
+    """
+    lat = '40.7720'
+    lon = '-112.1012'
+    start_date = parser.parse('2023/05/01')
+    end_date = parser.parse('2023/06/01')
+
+    obs.lat = lat
+    obs.lon = lon
+    start_utc = ephem.Date(start_date)
+    end_utc = ephem.Date(end_date + relativedelta(days=1))
+
+    current_utc = start_utc
+
+    moonset_times = []
+    end_twilight_times = []
+    begin_twilight_times = []
+    moonrise_times = []
+
+    # Note: The Ephem library ALWAYS uses Universal Time (UTC), never the local time zone, which complicates things
+    while current_utc < end_utc:
+        obs.date = current_utc
+
+        # Calculate the moonrise and moonset times
+        obs.horizon = '0'
+        moonset_time = obs.next_setting(ephem.Moon(), start=current_utc)
+        moonrise_time = obs.previous_rising(ephem.Moon(), start=current_utc)
+
+        # Calculate the astronomical twilight times (when sun is -18 below horizon)
+        obs.horizon = '-18'
+        begin_twilight = obs.previous_rising(ephem.Sun(), start=current_utc, use_center=True)
+        end_twilight = obs.next_setting(ephem.Sun(), start=current_utc, use_center=True)
+
+        # Convert the UTC times to the observer's local timezone
+        obs.date = begin_twilight
+        begin_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
+        obs.date = end_twilight
+        end_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
+        obs.date = moonrise_time
+        moonrise_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
+        obs.date = moonset_time
+        moonset_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
+
+        # Add the local time zone moonset/rise and astronomical twilight begin/end times to the list
+        moonset_times.append(moonset_time.datetime())
+        end_twilight_times.append(end_twilight.datetime())
+        begin_twilight_times.append(begin_twilight.datetime())
+        moonrise_times.append(moonrise_time.datetime())
+
+        # Terminal printout to help with troubleshooting
+        print('Begin astronomical twilight:', begin_twilight)
+        print('End astronomical twilight:', end_twilight)
+        print('Moonrise time:', moonrise_time)
+        print('Moonset time:', moonset_time)
+        print()
+
+        # Increment the current date by one day
+        current_utc += 1
+
+
     # Create Excel file using xlsxwriter
     workbook = xlsxwriter.Workbook("darkSkyTimes.xlsx")
     worksheet = workbook.add_worksheet('DarkSkyTimes')
@@ -178,7 +182,79 @@ def main():
     # Save the modified workbook
     workbook.save('darkSkyTimes.xlsx')
 
+class AstroDay:
+    def __str__(self):
+        return f'The day is: {self.day}, {self.moon_rise = }, {self.moon_set = }, {self.twilight_end = }, {self.twilight_start = }'
+
+    def __init__(self, day):
+        self.day = day
+        self.moon_rise = None
+        self.moon_set = None
+        self.twilight_end = None
+        self.twilight_start = None
+
+    def populate_astro_data (self, obs):
+        # To get the moon set and twilight end for today, we need to ask ephem the next setting of the moon and sun
+        # starting with midnight today in this timezone.
+        midnight_tonight = datetime.datetime.combine(self.day, datetime.datetime.min.time(), tzinfo=tzlocal.get_localzone())
+        e_date = ephem.Date(midnight_tonight)
+        obs.date = e_date
+        obs.horizon = '0'
+        moon_set_unaware_dt = obs.next_setting(ephem.Moon()).datetime()
+        obs.horizon = '-18'
+        twilight_end_unaware_dt = obs.next_setting(ephem.Sun(), use_center=True).datetime()
+
+        # To get the moon rise and twilight start for today, we need to ask ephem for the previous rising
+        # of the moon and sun starting with midnight tomorrow in this timezone.
+        midnight_tomorrow = datetime.datetime.combine(self.day + datetime.timedelta(days=1), datetime.datetime.min.time(),
+                                                     tzinfo=tzlocal.get_localzone())
+        e_date = ephem.Date(midnight_tomorrow)
+        obs.date = e_date
+        obs.horizon = '0'
+        moon_rise_unaware_dt = obs.previous_rising(ephem.Moon()).datetime()
+        obs.horizon = '-18'
+        twilight_start_unaware_dt = obs.previous_rising(ephem.Sun(), use_center=True).datetime()
+
+        # Calculate the moonrise and moonset times
+        # moon_set_unaware_dt = obs.next_setting(ephem.Moon()).datetime()
+        # moon_rise_unaware_dt = obs.previous_rising(ephem.Moon()).datetime()
+
+        # Calculate the astronomical twilight times (when sun is -18 below horizon)
+        # obs.horizon = '-18'
+        # twilight_start_unaware_dt = obs.previous_rising(ephem.Sun(), use_center=True).datetime()
+        # twilight_end_unaware_dt = obs.next_setting(ephem.Sun(), use_center=True).datetime()
+
+        self.moon_set = pytz.utc.localize(moon_set_unaware_dt)
+        self.moon_rise = pytz.utc.localize(moon_rise_unaware_dt)
+        self.twilight_start = pytz.utc.localize(twilight_start_unaware_dt)
+        self.twilight_end = pytz.utc.localize(twilight_end_unaware_dt)
+
+
+def test():
+
+    print("hello")
+    today = datetime.date(year=2023, month=5, day=30)
+    d = AstroDay(today)
+    print(d)
+
+    # Make an observer
+    obs = ephem.Observer()
+    lat = '40.7720'
+    lon = '-112.1012'
+    obs.lat = lat
+    obs.lon = lon
+
+    d.populate_astro_data(obs)
+    print(d)
+    print(d.moon_rise.astimezone().isoformat())
+    print(d.moon_set.astimezone().isoformat())
+    print(d.twilight_start.astimezone().isoformat())
+    print(d.twilight_end.astimezone().isoformat())
 
 if __name__ == "__main__":
-    main()
+#    main()
+    test()
 
+# TODO
+# Throw out or set to none when ephem returns a date time that isn't today.
+# Loop through all the dates in our range.
