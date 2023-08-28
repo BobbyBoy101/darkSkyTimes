@@ -15,46 +15,88 @@ from dateutil import parser, tz
 from dateutil.rrule import rrule, DAILY
 from dateutil.relativedelta import relativedelta
 
-def sun_rise(lat, lon, date, tz, horizon=-18):
+def sun_rise(lat, lon, day, tz, horizon=-18):
+    """To get the sun rise for today, we need to ask ephem for the previous rising of the sun starting with midnight tomorrow in this timezone."""
+
     # Make an observer
     obs = ephem.Observer()
     obs.lat = str(lat)
     obs.lon = str(lon)
     obs.horizon = str(horizon)
 
-    return None
+    midnight_tomorrow = datetime.datetime.combine(day + datetime.timedelta(days=1),
+                                                  datetime.datetime.min.time(),
+                                                  tzinfo=tzlocal.get_localzone())
+    obs.date = ephem.Date(midnight_tomorrow)
+    sun_rise_unaware_dt = obs.previous_rising(ephem.Sun(), use_center=True).datetime()
+    sun_rise = pytz.utc.localize(sun_rise_unaware_dt).astimezone(tz)
 
-def sun_set(lat, lon, date, tz, horizon=-18):
+    # print(f'{day = }, {str(sun_rise_unaware_dt) = } {str(sun_rise) = }')
+
+    if sun_rise.date() != day:
+        return None
+    return sun_rise
+
+def sun_set(lat, lon, day, tz, horizon=-18):
+    """To get the sun set for today, we need to ask ephem the next setting of the sun starting with midnight today in this timezone."""
+
     # Make an observer
     obs = ephem.Observer()
     obs.lat = str(lat)
     obs.lon = str(lon)
     obs.horizon = str(horizon)
 
-    return None
+    midnight_today = datetime.datetime.combine(day, datetime.datetime.min.time(),
+                                                 tzinfo=tz)
+    obs.date = ephem.Date(midnight_today)
 
-def moon_rise(lat, lon, date, tz, horizon=0):
+    sun_set_unaware_dt = obs.next_setting(ephem.Sun(), use_center=True).datetime()
+    sun_set = pytz.utc.localize(sun_set_unaware_dt).astimezone(tz)
+
+    # print(f'{day = }, {str(sun_set_unaware_dt) = } {str(sun_set) = }')
+
+    if sun_set.date() != day:
+        return None
+    return sun_set
+
+def moon_rise(lat, lon, day, tz, horizon=0):
+    """To get the moon rise for today, we need to ask ephem for the previous rising of the moon starting with midnight tomorrow in this timezone."""
+
     # Make an observer
     obs = ephem.Observer()
     obs.lat = str(lat)
     obs.lon = str(lon)
     obs.horizon = str(horizon)
 
-    return None
+    midnight_tomorrow = datetime.datetime.combine(day + datetime.timedelta(days=1),
+                                                  datetime.datetime.min.time(),
+                                                  tzinfo=tzlocal.get_localzone())
+    obs.date = ephem.Date(midnight_tomorrow)
+
+    moon_rise_unaware_dt = obs.previous_rising(ephem.Moon()).datetime()
+    moon_rise = pytz.utc.localize(moon_rise_unaware_dt).astimezone(tz)
+
+    # print(f'{day = }, {str(moon_rise_unaware_dt) = } {str(moon_rise) = }')
+
+    if moon_rise.date() != day:
+        return None
+    return moon_rise
 
 def moon_set(lat, lon, day, tz, horizon=0):
+    """To get the moon set for today, we need to ask ephem the next setting of the moon starting with midnight today in this timezone."""
+
     # Make an observer
     obs = ephem.Observer()
     obs.lat = str(lat)
     obs.lon = str(lon)
     obs.horizon = str(horizon)
 
-    midnight_tonight = datetime.datetime.combine(day, datetime.datetime.min.time(),
+    midnight_today = datetime.datetime.combine(day, datetime.datetime.min.time(),
                                                  tzinfo=tz)
-    obs.date = ephem.Date(midnight_tonight)
-    moon_set_unaware_dt = pytz.utc.localize(obs.next_setting(ephem.Moon()).datetime())
+    obs.date = ephem.Date(midnight_today)
 
-    moon_set = moon_set_unaware_dt.astimezone(tz)
+    moon_set_unaware_dt = obs.next_setting(ephem.Moon()).datetime()
+    moon_set = pytz.utc.localize(moon_set_unaware_dt).astimezone(tz)
 
     # print(f'{day = }, {str(moon_set_unaware_dt) = } {str(moon_set) = }')
 
@@ -63,6 +105,17 @@ def moon_set(lat, lon, day, tz, horizon=0):
     return moon_set
 
 class AstroDay:
+    def __init__(self, lat, lon, day, tz):
+        self.lat = lat
+        self.lon = lon
+        self.day = day
+        self.tz = tz
+
+        self.moon_rise = moon_rise(self.lat, self.lon, self.day, self.tz)
+        self.moon_set = moon_set(self.lat, self.lon, self.day, self.tz)
+        self.dawn = sun_rise(self.lat, self.lon, self.day, self.tz)
+        self.dusk = sun_set(self.lat, self.lon, self.day, self.tz)
+
     def __str__(self):
         dt_fmt = "%I:%M %p %Z"
 
@@ -72,7 +125,7 @@ class AstroDay:
             dawn_str = ' -          '
 
         if self.dusk:
-            dusk_str = self.moon_rise.strftime(dt_fmt)
+            dusk_str = self.dusk.strftime(dt_fmt)
         else:
             dusk_str = ' -          '
 
@@ -88,46 +141,30 @@ class AstroDay:
 
         return f'| {self.day.strftime("%m/%d/%y")} | {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'
 
+class DarkTime:
+    def __init__(
+        self,
+        yesterday: AstroDay,
+        today: AstroDay,
+        tomorrow: AstroDay
+    ):
+        self.day = today.day
+        self.dark_time = False
 
-    def __init__(self, lat, lon, day, tz):
-        self.lat = lat
-        self.lon = lon
-        self.day = day
-        self.tz = tz
+        # moon sets while sun is down
+        if today.moon_set:
+            if today.moon_set < today.dawn:
+                self.dark_time = True
+            elif today.moon_set > today.dusk:
+                self.dark_time = True
 
-        self.moon_rise = moon_rise(self.lat, self.lon, self.day, self.tz)
-        self.moon_set = moon_set(self.lat, self.lon, self.day, self.tz)
-        self.dawn = sun_rise(self.lat, self.lon, self.day, self.tz)
-        self.dusk = sun_set(self.lat, self.lon, self.day, self.tz)
+        # sun sets while moon is down
 
-    def populate_astro_data(self, obs):
-        # To get the moon set and twilight evening for today, we need to ask ephem the next setting of the
-        # moon and sun starting with midnight today in this timezone.
-        midnight_tonight = datetime.datetime.combine(self.day, datetime.datetime.min.time(),
-                                                     tzinfo=tzlocal.get_localzone())
-        e_date = ephem.Date(midnight_tonight)
-        obs.date = e_date
-        obs.horizon = '0'
-        moon_set_unaware_dt = obs.next_setting(ephem.Moon()).datetime()
-        obs.horizon = '-18'
-        twilight_evening_unaware_dt = obs.next_setting(ephem.Sun(), use_center=True).datetime()
 
-        # To get the moon rise and twilight morning for today, we need to ask ephem for the previous rising
-        # of the moon and sun starting with midnight tomorrow in this timezone.
-        midnight_tomorrow = datetime.datetime.combine(self.day + datetime.timedelta(days=1),
-                                                      datetime.datetime.min.time(),
-                                                      tzinfo=tzlocal.get_localzone())
-        e_date = ephem.Date(midnight_tomorrow)
-        obs.date = e_date
-        obs.horizon = '0'
-        moon_rise_unaware_dt = obs.previous_rising(ephem.Moon()).datetime()
-        obs.horizon = '-18'
-        twilight_morning_unaware_dt = obs.previous_rising(ephem.Sun(), use_center=True).datetime()
+        # this should really be two 0 / 1 waveforms in utc, that's the right datastructure, and just poll as needed
+        # dark times would then just be whenever both of them are 0
 
-        self.moon_set = pytz.utc.localize(moon_set_unaware_dt)
-        self.moon_rise = pytz.utc.localize(moon_rise_unaware_dt)
-        self.twilight_morning = pytz.utc.localize(twilight_morning_unaware_dt)
-        self.twilight_evening = pytz.utc.localize(twilight_evening_unaware_dt)
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
@@ -145,12 +182,32 @@ def main(args_list):
     args = parse_args(args_list)
     args.tz = tz.gettz(args.tz)
 
+    # Construct Raw Data
+
+    a_days = {}
+    for dt in rrule(DAILY, dtstart=args.start, until=args.end):
+        day = dt.date()
+        a_days[day] = AstroDay(args.lat, args.lon, day, args.tz)
+
+    # Construct Dark Times
+
+    dark_times = {}
+    for dt in rrule(DAILY, dtstart=args.start, until=args.end)
+        today = dt.date()
+        yesterday = today - timedelta(days=1)
+        tomorrow = today + timedelta(days=1)
+
+        dark_times[today] = DarkTime(a_days[yesterday], a_days[today], a_days[tomorrow])
+
+
+
+
     print('+----------+--------------+--------------+--------------+--------------+')
     print('| Date     | Dawn         | Dusk         | Moon Rise    | Moon Set     |')
     print('+----------+--------------+--------------+--------------+--------------+')
 
-    for day in rrule(DAILY, dtstart=args.start, until=args.end):
-        print(AstroDay(args.lat, args.lon, day.date(), args.tz))
+    for day, a_day in a_days.items():
+        print(a_day)
 
     print('+----------+--------------+--------------+--------------+--------------+')
 
