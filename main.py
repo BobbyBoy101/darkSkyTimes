@@ -10,6 +10,18 @@ from openpyxl import load_workbook
 from openpyxl.styles import numbers
 import tzlocal
 from datetime import timedelta
+import argparse
+import sys
+
+def parse_args(args):
+    parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
+    parser.add_argument('-lat', type=float, help='Observer Latitude')
+    parser.add_argument('-lon', type=float, help='Observer Longitude')
+    parser.add_argument('-start', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
+                        help='Start date (dd/mm/yyyy)')
+    parser.add_argument('-end', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
+                        help='End date inclusive (dd/mm/yyyy)')
+    return parser.parse_args(args)
 
 
 def main():
@@ -223,8 +235,10 @@ class AstroDay:
         self.twilight_evening = pytz.utc.localize(twilight_evening_unaware_dt)
 
 
-def test():
-    today = datetime.date(year=2023, month=5, day=8)
+def test(args_list):
+    args = parse_args(args_list)
+
+    today = args.start
     next_day = today + timedelta(days=1)
     current_day = today.day
     next_day_number = next_day.day
@@ -235,10 +249,8 @@ def test():
 
     # Make an observer
     obs = ephem.Observer()
-    lat = '40.7720'
-    lon = '-112.1012'
-    obs.lat = lat
-    obs.lon = lon
+    obs.lat = args.lat
+    obs.lon = args.lon
 
     d.populate_astro_data(obs)
     print(d)
@@ -352,7 +364,8 @@ def test():
 
 if __name__ == '__main__':
     #    main()
-    test()
+    #  test()
+    test(sys.argv[1:])
 
 # TODO
 # Throw out or set to none when ephem returns a date time that isn't today.
