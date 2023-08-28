@@ -1,3 +1,5 @@
+This is a dummy change
+
 # darkSkyTimes
 
 The darkSkyTimes repository allows users to easily determine the times when the sky is the darkest (i.e. between the times of astronomical twilight end and start, along with the absence of the moon for a desired location).
