@@ -104,6 +104,11 @@ def moon_set(lat, lon, day, tz, horizon=0):
         return None
     return moon_set
 
+def fmt_timedelta(td):
+    hour, rem = divmod(td.seconds, 3600)
+    min, sec = divmod(rem, 60)
+    return f'{hour}h {min}m'
+
 class AstroDay:
     def __init__(self, lat, lon, day, tz):
         self.lat = lat
@@ -141,6 +146,9 @@ class AstroDay:
 
         return f'| {self.day.strftime("%m/%d/%y")} | {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'
 
+
+# this should really be two 0 / 1 waveforms in utc, that's the right datastructure, and just poll as needed
+# dark times would then just be whenever both of them are 0
 class DarkTime:
     def __init__(
         self,
@@ -155,16 +163,59 @@ class DarkTime:
         if today.moon_set:
             if today.moon_set < today.dawn:
                 self.dark_time = True
+                self.start = today.moon_set
+                self.end = today.dawn
             elif today.moon_set > today.dusk:
                 self.dark_time = True
+                self.start = today.moon_set
+                self.end = min(tomorrow.dawn, tomorrow.moon_rise)
 
         # sun sets while moon is down
+        if not today.moon_set:
+            if today.dusk < today.moon_rise:
+                self.dark_time = True
+                self.start = today.dusk
+                self.end = today.moon_rise
+            # otherwise false
+        elif not today.moon_rise:
+            if today.dusk > today.moon_set:
+                self.dark_time = True
+                self.start = today.dusk
+                self.end = min(tomorrow.dawn, tomorrow.moon_rise)
+            # otherwise false
+        else:
+            if today.moon_set < today.moon_rise: # moon looks like |---___---|
+                # need dusk to be between moon rise and set
+                if today.moon_set < today.dusk < today.moon_rise:
+                    self.dark_time = True
+                    self.start = today.dusk
+                    self.end = today.moon_rise
+            else: # moon looks like |___---___|
+                # need dusk to not be between moon rise and set
+                if not (today.moon_set < today.dusk < today.moon_rise):
+                    self.dark_time = True
+                    self.start = today.dusk
+                    self.end = min(tomorrow.dawn, tomorrow.moon_rise)
+
+        if self.dark_time:
+            self.duration = self.end - self.start
 
 
-        # this should really be two 0 / 1 waveforms in utc, that's the right datastructure, and just poll as needed
-        # dark times would then just be whenever both of them are 0
+    def __str__(self):
+        if self.dark_time:
+            start_str = self.start.strftime("%I:%M %p %Z")
 
+            end_str = self.end.strftime("%I:%M %p %Z   ")
+            if self.end.date() != self.start.date():
+                end_str = self.end.strftime("%I:%M %p %Z +1")
 
+            duration_str = fmt_timedelta(self.duration).ljust(8, ' ')
+        else:
+            start_str = ' -          '
+            end_str = ' -             '
+            duration_str = ' -      '
+
+        return f'| {self.day.strftime("%m/%d/%y")} | {start_str} | {end_str} | {duration_str} |'
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
@@ -185,14 +236,14 @@ def main(args_list):
     # Construct Raw Data
 
     a_days = {}
-    for dt in rrule(DAILY, dtstart=args.start, until=args.end):
+    for dt in rrule(DAILY, dtstart=args.start-timedelta(days=1), until=args.end+timedelta(days=1)):
         day = dt.date()
         a_days[day] = AstroDay(args.lat, args.lon, day, args.tz)
 
     # Construct Dark Times
 
     dark_times = {}
-    for dt in rrule(DAILY, dtstart=args.start, until=args.end)
+    for dt in rrule(DAILY, dtstart=args.start, until=args.end):
         today = dt.date()
         yesterday = today - timedelta(days=1)
         tomorrow = today + timedelta(days=1)
@@ -210,6 +261,18 @@ def main(args_list):
         print(a_day)
 
     print('+----------+--------------+--------------+--------------+--------------+')
+
+    print()
+
+    print('+----------+--------------+-----------------+----------+')
+    print('| Date     | Start        | End             | Duration |')
+    print('+----------+--------------+-----------------+----------+')
+
+    for day, dark_time in dark_times.items():
+        print(dark_time)
+
+    print('+----------+--------------+-----------------+----------+')
+
 
 if __name__ == '__main__':
     main(sys.argv[1:])

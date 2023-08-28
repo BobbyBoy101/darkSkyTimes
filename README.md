@@ -67,7 +67,7 @@ These installation instructions are written for Terminal in Mac OS X
 Here are my example parameters:
 
 ~~~
--lat 40.7720 -lon -112.1012 -start 05/20/2023 -end 05/30/2023 -tz America/Denver
+-lat 40.7720 -lon -112.1012 -start 04/01/2023 -end 12/31/2023 -tz America/Denver
 ~~~
 
 ### License
