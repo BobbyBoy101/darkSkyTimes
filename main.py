@@ -1,209 +1,104 @@
-from dateutil import parser
-from datetime import datetime as dt
-from dateutil.relativedelta import relativedelta
+import argparse
+import sys
 import xlsxwriter
 import ephem
 import pytz
 import datetime
+import tzlocal
+
+from datetime import datetime as dt
+from datetime import timedelta
 from calendar import monthrange
 from openpyxl import load_workbook
 from openpyxl.styles import numbers
-import tzlocal
-from datetime import timedelta
-import argparse
-import sys
+from dateutil import parser, tz
+from dateutil.rrule import rrule, DAILY
+from dateutil.relativedelta import relativedelta
 
-def parse_args(args):
-    parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
-    parser.add_argument('-lat', type=float, help='Observer Latitude')
-    parser.add_argument('-lon', type=float, help='Observer Longitude')
-    parser.add_argument('-start', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
-                        help='Start date (dd/mm/yyyy)')
-    parser.add_argument('-end', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
-                        help='End date inclusive (dd/mm/yyyy)')
-    return parser.parse_args(args)
-
-
-def main():
-    ROW_OFFSET = 1
-
+def sun_rise(lat, lon, date, tz, horizon=-18):
     # Make an observer
     obs = ephem.Observer()
+    obs.lat = str(lat)
+    obs.lon = str(lon)
+    obs.horizon = str(horizon)
 
-    """
-    Disabled lat/lon and date input prompt so you don't have to type them in every time while troubleshooting
-    lat = input("Enter your latitude: ")
-    lon = input("Enter your longitude: ")
-    start_date = parser.parse(input("Enter the start date (YYYY/MM/DD): "))
-    end_date = parser.parse(input("Enter the end date (YYYY/MM/DD): "))
-    """
-    lat = '40.7720'
-    lon = '-112.1012'
-    start_date = parser.parse('2023/05/01')
-    end_date = parser.parse('2023/06/01')
+    return None
 
-    obs.lat = lat
-    obs.lon = lon
-    start_utc = ephem.Date(start_date)
-    end_utc = ephem.Date(end_date + relativedelta(days=1))
+def sun_set(lat, lon, date, tz, horizon=-18):
+    # Make an observer
+    obs = ephem.Observer()
+    obs.lat = str(lat)
+    obs.lon = str(lon)
+    obs.horizon = str(horizon)
 
-    current_utc = start_utc
+    return None
 
-    moonset_times = []
-    end_twilight_times = []
-    begin_twilight_times = []
-    moonrise_times = []
+def moon_rise(lat, lon, date, tz, horizon=0):
+    # Make an observer
+    obs = ephem.Observer()
+    obs.lat = str(lat)
+    obs.lon = str(lon)
+    obs.horizon = str(horizon)
 
-    # Note: The Ephem library ALWAYS uses Universal Time (UTC), never the local time zone, which complicates things
-    while current_utc < end_utc:
-        obs.date = current_utc
+    return None
 
-        # Calculate the moonrise and moonset times
-        obs.horizon = '0'
-        moonset_time = obs.next_setting(ephem.Moon(), start=current_utc)
-        moonrise_time = obs.previous_rising(ephem.Moon(), start=current_utc)
+def moon_set(lat, lon, day, tz, horizon=0):
+    # Make an observer
+    obs = ephem.Observer()
+    obs.lat = str(lat)
+    obs.lon = str(lon)
+    obs.horizon = str(horizon)
 
-        # Calculate the astronomical twilight times (when sun is -18 below horizon)
-        obs.horizon = '-18'
-        begin_twilight = obs.previous_rising(ephem.Sun(), start=current_utc, use_center=True)
-        end_twilight = obs.next_setting(ephem.Sun(), start=current_utc, use_center=True)
+    midnight_tonight = datetime.datetime.combine(day, datetime.datetime.min.time(),
+                                                 tzinfo=tz)
+    obs.date = ephem.Date(midnight_tonight)
+    moon_set_unaware_dt = pytz.utc.localize(obs.next_setting(ephem.Moon()).datetime())
 
-        # Convert the UTC times to the observer's local timezone
-        obs.date = begin_twilight
-        begin_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-        obs.date = end_twilight
-        end_twilight_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-        obs.date = moonrise_time
-        moonrise_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
-        obs.date = moonset_time
-        moonset_time_local = ephem.localtime(obs.date).strftime('%Y/%m/%d %I:%M %p')
+    moon_set = moon_set_unaware_dt.astimezone(tz)
 
-        # Add the local time zone moonset/rise and astronomical twilight begin/end times to the list
-        moonset_times.append(moonset_time.datetime())
-        end_twilight_times.append(end_twilight.datetime())
-        begin_twilight_times.append(begin_twilight.datetime())
-        moonrise_times.append(moonrise_time.datetime())
+    # print(f'{day = }, {str(moon_set_unaware_dt) = } {str(moon_set) = }')
 
-        # Terminal printout to help with troubleshooting
-        print('Begin astronomical twilight:', begin_twilight)
-        print('End astronomical twilight:', end_twilight)
-        print('Moonrise time:', moonrise_time)
-        print('Moonset time:', moonset_time)
-        print()
-
-        # Increment the current date by one day
-        current_utc += 1
-
-    # Create Excel file using xlsxwriter
-    workbook = xlsxwriter.Workbook('darkSkyTimes.xlsx')
-    worksheet = workbook.add_worksheet('DarkSkyTimes')
-
-    # Format cells
-    cell_header_format = workbook.add_format()
-    cell_header_format.set_bold()
-    cell_header_format.set_text_wrap()
-    cell_header_format.set_align('center_across')
-
-    time_format = workbook.add_format()
-    time_format.set_text_wrap()
-    time_format.set_align('center_across')
-
-    # Create headers using cell location
-    worksheet.write('A2', 'Day', cell_header_format)
-    worksheet.write('B2', 'Moon Set', cell_header_format)
-    worksheet.write('C2', 'Astronomical Twilight END', cell_header_format)
-    worksheet.write('D2', 'Astronomical Twilight START', cell_header_format)
-    worksheet.write('E2', 'Moon Rise', cell_header_format)
-    worksheet.write('F2', 'Duration', cell_header_format)
-
-    rowIndex = 3
-
-    for row, moon_set_sheet in enumerate(moonset_times):
-        day_sheet = row + ROW_OFFSET
-        moon_set_tz = moon_set_sheet.replace(tzinfo=pytz.timezone('UTC'))
-        moon_set = moon_set_tz.astimezone(pytz.timezone('US/Mountain'))
-        # Included %Y/%m/%d to help with troubleshooting
-        moon_set_str = moon_set.strftime('%Y/%m/%d %H:%M')
-        local_moon_set_day = moon_set.astimezone(pytz.timezone('US/Mountain')).day
-
-        """
-        On days when the moon does not rise or does not set in that day, then that cell should be blank.
-        However, the rise/set time for the next day was being populated in that cell that should be blank.
-        This solves that problem, but creates a new problem where the last day or two of the month is
-        skipping a day or being displayed on the wrong day.
-
-        Current problem:
-        Second to last day of month: incorrect moon rise time, it displays the moon rise time for the next day.
-        Last day of month: incorrect moon set time, it displays the time for the next day (which is the first day
-        of the next month). Also, no data is being filled in for the last day of the month for the moon rise time,
-        because it is being inputted on the second to last day of the month, so that cell is blank when it shouldn't be.
-        """
-        moon_rise_tz = moonrise_times[row].replace(tzinfo=pytz.timezone('UTC'))
-        moon_rise = moon_rise_tz.astimezone(pytz.timezone('US/Mountain'))
-        # Included %Y/%m/%d to help with troubleshooting
-        moon_rise_str = moon_rise.strftime('%Y/%m/%d %H:%M')
-        local_moon_rise_day = moon_rise.astimezone(pytz.timezone('US/Mountain')).day + 1
-        moon_rise_month = moon_rise.astimezone(pytz.timezone('US/Mountain')).month
-        moon_rise_year = moon_rise.astimezone(pytz.timezone('US/Mountain')).year
-        first, last = monthrange(moon_rise_year, moon_rise_month)
-        if local_moon_rise_day > last:
-            local_moon_rise_day = local_moon_rise_day - last
-
-        # Included %Y/%m/%d to help with troubleshooting
-        end_twilight_sheet = end_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(
-            pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M')
-        # Included %Y/%m/%d to help with troubleshooting
-        begin_twilight_sheet = begin_twilight_times[row].replace(tzinfo=pytz.timezone('UTC')).astimezone(
-            pytz.timezone('US/Mountain')).strftime('%Y/%m/%d %H:%M')
-
-        worksheet.write('A' + str(rowIndex + 1), day_sheet, cell_header_format)
-        if local_moon_set_day != day_sheet:
-            worksheet.write('B' + str(rowIndex), moon_set_str, time_format)
-        else:
-            worksheet.write('B' + str(rowIndex + 1), moon_set_str, time_format)
-        worksheet.write('C' + str(rowIndex), end_twilight_sheet, time_format)
-        worksheet.write('D' + str(rowIndex), begin_twilight_sheet, time_format)
-        if local_moon_rise_day != day_sheet:
-            worksheet.write('E' + str(rowIndex - 1), moon_rise_str, time_format)
-        else:
-            worksheet.write('E' + str(rowIndex), moon_rise_str, time_format)
-
-        rowIndex += 1
-
-    # Set column size
-    worksheet.set_column('A:A', 5)
-    worksheet.set_column('B:B', 20)
-    worksheet.set_column('C:C', 23)
-    worksheet.set_column('D:D', 25)
-    worksheet.set_column('E:E', 21)
-    worksheet.set_column('F:F', 9)
-
-    workbook.close()
-
-    # Load the workbook using openpyxl
-    workbook = load_workbook('darkSkyTimes.xlsx')
-
-    # Get the active sheet
-    sheet = workbook.active
-
-    # Delete the row of times that is generated before the specified date-range since Ephem uses "previous_rising"
-    sheet.delete_rows(3)
-
-    # Save the modified workbook
-    workbook.save('darkSkyTimes.xlsx')
-
+    if moon_set.date() != day:
+        return None
+    return moon_set
 
 class AstroDay:
     def __str__(self):
-        return f'The day is: {self.day}, {self.moon_rise = }, {self.moon_set = }, ' \
-               f'{self.twilight_evening = }, {self.twilight_morning = }'
+        dt_fmt = "%I:%M %p %Z"
 
-    def __init__(self, day):
+        if self.dawn:
+            dawn_str = self.dawn.strftime(dt_fmt)
+        else:
+            dawn_str = ' -          '
+
+        if self.dusk:
+            dusk_str = self.moon_rise.strftime(dt_fmt)
+        else:
+            dusk_str = ' -          '
+
+        if self.moon_rise:
+            moon_rise_str = self.moon_rise.strftime(dt_fmt)
+        else:
+            moon_rise_str = ' -          '
+
+        if self.moon_set:
+            moon_set_str = self.moon_set.strftime(dt_fmt)
+        else:
+            moon_set_str = ' -          '
+
+        return f'| {self.day.strftime("%m/%d/%y")} | {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'
+
+
+    def __init__(self, lat, lon, day, tz):
+        self.lat = lat
+        self.lon = lon
         self.day = day
-        self.moon_rise = None
-        self.moon_set = None
-        self.twilight_evening = None
-        self.twilight_morning = None
+        self.tz = tz
+
+        self.moon_rise = moon_rise(self.lat, self.lon, self.day, self.tz)
+        self.moon_set = moon_set(self.lat, self.lon, self.day, self.tz)
+        self.dawn = sun_rise(self.lat, self.lon, self.day, self.tz)
+        self.dusk = sun_set(self.lat, self.lon, self.day, self.tz)
 
     def populate_astro_data(self, obs):
         # To get the moon set and twilight evening for today, we need to ask ephem the next setting of the
@@ -234,139 +129,30 @@ class AstroDay:
         self.twilight_morning = pytz.utc.localize(twilight_morning_unaware_dt)
         self.twilight_evening = pytz.utc.localize(twilight_evening_unaware_dt)
 
+def parse_args(args):
+    parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
+    parser.add_argument('-lat', type=float, help='Observer Latitude')
+    parser.add_argument('-lon', type=float, help='Observer Longitude')
+    parser.add_argument('-start', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
+                        help='Start date (dd/mm/yyyy)')
+    parser.add_argument('-end', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
+                        help='End date inclusive (dd/mm/yyyy)')
+    parser.add_argument('-tz', choices=pytz.all_timezones, help='The timezone')
+    return parser.parse_args(args)
 
-def test(args_list):
+
+def main(args_list):
     args = parse_args(args_list)
+    args.tz = tz.gettz(args.tz)
 
-    today = args.start
-    next_day = today + timedelta(days=1)
-    current_day = today.day
-    next_day_number = next_day.day
-    d = AstroDay(today)
-    d_next = AstroDay(next_day)
-    print(d)
-    print(d_next)
+    print('+----------+--------------+--------------+--------------+--------------+')
+    print('| Date     | Dawn         | Dusk         | Moon Rise    | Moon Set     |')
+    print('+----------+--------------+--------------+--------------+--------------+')
 
-    # Make an observer
-    obs = ephem.Observer()
-    obs.lat = args.lat
-    obs.lon = args.lon
+    for day in rrule(DAILY, dtstart=args.start, until=args.end):
+        print(AstroDay(args.lat, args.lon, day.date(), args.tz))
 
-    d.populate_astro_data(obs)
-    print(d)
-    print(d.moon_rise.astimezone())
-    print(d.moon_set.astimezone())
-    print(d.twilight_morning.astimezone())
-    print(d.twilight_evening.astimezone())
-    print()
-
-    d_next.populate_astro_data(obs)
-    print(d_next)
-    print(d_next.moon_rise.astimezone())
-    print(d_next.moon_set.astimezone())
-    print(d_next.twilight_morning.astimezone())
-    print(d_next.twilight_evening.astimezone())
-    print()
-
-    moon_rise_tz = d.moon_rise.astimezone()
-    moon_set_tz = d.moon_set.astimezone()
-    twilight_morning_tz = d.twilight_morning.astimezone()
-    twilight_evening_tz = d.twilight_evening.astimezone()
-
-    next_moon_rise_tz = d_next.moon_rise.astimezone()
-    next_moon_set_tz = d_next.moon_set.astimezone()
-    next_twilight_morning_tz = d_next.twilight_morning.astimezone()
-    next_twilight_evening_tz = d_next.twilight_evening.astimezone()
-
-    moon_rise_day = moon_rise_tz.day
-    moon_set_day = moon_set_tz.day
-    twilight_morning_day = twilight_morning_tz.day
-    twilight_evening_day = twilight_evening_tz.day
-
-    next_moon_rise_day = next_moon_rise_tz.day
-    next_moon_set_day = next_moon_set_tz.day
-    next_twilight_morning_day = next_twilight_morning_tz.day
-    next_twilight_evening_day = next_twilight_evening_tz.day
-
-    if moon_set_day == current_day:
-        print(moon_set_tz)
-    else:
-        no_moon_set = 'null'
-        print(no_moon_set)
-
-    print(twilight_evening_tz)
-    print(twilight_morning_tz)
-
-    if moon_rise_day == current_day:
-        print(moon_rise_tz)
-    else:
-        no_moon_rise = 'null'
-        print(no_moon_rise)
-    print()
-
-    # Get times for next day
-    if next_moon_set_day == next_day_number:
-        print(next_moon_set_tz)
-    else:
-        no_moon_set = 'null'
-        print(no_moon_set)
-
-    print(next_twilight_evening_tz)
-    print(next_twilight_morning_tz)
-
-    if next_moon_rise_day == next_day_number:
-        print(next_moon_rise_tz)
-    else:
-        no_moon_rise = 'null'
-        print(no_moon_rise)
-    print()
-
-    # There are 5 conditions that produce dark sky.
-    # Condition 1: From moon set to twilight morning on same day.
-    #               When the moon sets before twilight morning on the same day.
-    if (moon_set_day == current_day) and (moon_set_tz < twilight_morning_tz):
-        set_morning_duration = twilight_morning_tz - moon_set_tz
-        print(set_morning_duration)
-    # Condition 2: From twilight evening to moon rise on the same day.
-    #               When the moon rise happens after twilight evening on the same day.
-    elif (moon_rise_day == current_day) and (twilight_evening_tz < moon_rise_tz):
-        evening_rise_duration = moon_rise_tz - twilight_evening_tz
-        print(evening_rise_duration)
-    # Condition 3: From moon set to twilight morning of the next day.
-    # ***OFFSET NEED TO FIX
-    #                when the moon sets after twilight evening on one day
-    #                and rises after twilight morning on the next day.
-    elif (moon_set_day == current_day) and (twilight_evening_tz < moon_set_tz) and \
-            (next_twilight_morning_tz < next_moon_rise_tz):
-        set_next_morning_duration = next_twilight_morning_tz - moon_set_tz
-        print(set_next_morning_duration)
-    # Condition 4: From twilight evening to twilight morning on the next day
-    # ***OFFSET NEED TO FIX
-    #               When the moon sets before twilight evening
-    #               and does not rise before twilight evening on the same day
-    elif (moon_set_day == current_day) and (moon_set_tz < twilight_evening_tz) and \
-            (moon_rise_tz < twilight_evening_tz) and (next_twilight_morning_tz < next_moon_rise_tz):
-        evening_next_morning_duration = next_twilight_morning_tz - twilight_evening_tz
-        print(evening_next_morning_duration)
-    # Condition 5: From twilight evening to moon rise of the next day
-    #               When the moon rise for the next day happens before twilight morning on the next day.
-    elif (moon_rise_day == current_day) and (moon_set_tz < twilight_evening_tz) and \
-            (next_moon_rise_tz < next_twilight_morning_tz):
-        evening_next_rise_duration = next_moon_rise_tz - twilight_evening_tz
-        print(evening_next_rise_duration)
-    else:
-        print("0")
-
-    # NEED TO FIGURE OUT DURATION OFFSET
-    # bug when there is no moon rise for condition 5
-
-
+    print('+----------+--------------+--------------+--------------+--------------+')
 
 if __name__ == '__main__':
-    #    main()
-    #  test()
-    test(sys.argv[1:])
-
-# TODO
-# Throw out or set to none when ephem returns a date time that isn't today.
-# Loop through all the dates in our range.
+    main(sys.argv[1:])
