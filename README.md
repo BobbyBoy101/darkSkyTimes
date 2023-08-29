@@ -62,6 +62,14 @@ These installation instructions are written for Terminal in Mac OS X
 2. Follow the prompts to input the desired month and latitude/longitude coordinates.
 3. The generated Excel spreadsheet will be saved in the project directory.
 
+### Parameters
+
+Here are my example parameters:
+
+~~~
+-lat 40.7720 -lon -112.1012 -start 04/01/2023 -end 12/31/2023 -tz America/Denver
+~~~
+
 ### License
 This project is licensed under the [MIT License](LICENSE)
 
