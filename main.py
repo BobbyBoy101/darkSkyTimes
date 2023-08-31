@@ -5,11 +5,12 @@ import ephem
 import pytz
 import datetime
 import tzlocal
+import pandas as pd
 
 from datetime import datetime as dt
 from datetime import timedelta
 from calendar import monthrange
-from openpyxl import load_workbook
+from openpyxl import Workbook
 from openpyxl.styles import numbers
 from dateutil import parser, tz
 from dateutil.rrule import rrule, DAILY
@@ -91,8 +92,7 @@ def moon_set(lat, lon, day, tz, horizon=0):
     obs.lon = str(lon)
     obs.horizon = str(horizon)
 
-    midnight_today = datetime.datetime.combine(day, datetime.datetime.min.time(),
-                                                 tzinfo=tz)
+    midnight_today = datetime.datetime.combine(day, datetime.datetime.min.time(), tzinfo=tz)
     obs.date = ephem.Date(midnight_today)
 
     moon_set_unaware_dt = obs.next_setting(ephem.Moon()).datetime()
@@ -146,6 +146,32 @@ class AstroDay:
 
         return f'| {self.day.strftime("%m/%d/%y")} | {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'
 
+    '''
+    def as_list(self):
+        dt_fmt = "%I:%M %p %Z"
+
+        if self.dawn:
+            dawn_str = self.dawn.strftime(dt_fmt)
+        else:
+            dawn_str = ' -          '
+
+        if self.dusk:
+            dusk_str = self.dusk.strftime(dt_fmt)
+        else:
+            dusk_str = ' -          '
+
+        if self.moon_rise:
+            moon_rise_str = self.moon_rise.strftime(dt_fmt)
+        else:
+            moon_rise_str = ' -          '
+
+        if self.moon_set:
+            moon_set_str = self.moon_set.strftime(dt_fmt)
+        else:
+            moon_set_str = ' -          '
+
+        return [(self.day.strftime("%m/%d/%y")), self.dawn, {dusk_str}, {moon_rise_str}, {moon_set_str}]
+    '''
 
 # this should really be two 0 / 1 waveforms in utc, that's the right datastructure, and just poll as needed
 # dark times would then just be whenever both of them are 0
@@ -200,12 +226,11 @@ class DarkTime:
         if self.dark_time:
             self.duration = self.end - self.start
 
-
     def __str__(self):
         if self.dark_time:
             start_str = self.start.strftime("%I:%M %p %Z")
 
-            end_str = self.end.strftime("%I:%M %p %Z   ")
+            end_str = self.end.strftime("%I:%M %p %Z")
             if self.end.date() != self.start.date():
                 end_str = self.end.strftime("%I:%M %p %Z +1")
 
@@ -216,6 +241,8 @@ class DarkTime:
             duration_str = ' -      '
 
         return f'| {self.day.strftime("%m/%d/%y")} | {start_str} | {end_str} | {duration_str} |'
+        # return f'[{self.day.strftime("%m/%d/%y")}, {start_str}, {end_str}, {duration_str}]'
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
@@ -239,6 +266,19 @@ def main(args_list):
     for dt in rrule(DAILY, dtstart=args.start-timedelta(days=1), until=args.end+timedelta(days=1)):
         day = dt.date()
         a_days[day] = AstroDay(args.lat, args.lon, day, args.tz)
+        # ad = AstroDay(args.lat, args.lon, day, args.tz)
+        # a_days[day] = ad.as_list()
+
+    '''
+    Can't figure out a good way to get this dict into a better format. Right now it's
+    {day: 'all times together'} 
+    but to make it better in excel, it needs to be like:
+    {day: ['Date', 'Dawn', 'Dusk', 'Moon Rise', 'Moon Set']}
+    I created a function in the AstroDay class to do this, but excel can't work with timezone aware datetimes.
+    Changing it to a str makes it super long in excel and you can't format it in the DataFrame.
+    Having the list function return it like {dusk_str} shows up in excel as {'04:41 AM'}
+    with the curly brackets and quotes.
+    '''
 
     # Construct Dark Times
 
@@ -249,9 +289,6 @@ def main(args_list):
         tomorrow = today + timedelta(days=1)
 
         dark_times[today] = DarkTime(a_days[yesterday], a_days[today], a_days[tomorrow])
-
-
-
 
     print('+----------+--------------+--------------+--------------+--------------+')
     print('| Date     | Dawn         | Dusk         | Moon Rise    | Moon Set     |')
@@ -272,6 +309,26 @@ def main(args_list):
         print(dark_time)
 
     print('+----------+--------------+-----------------+----------+')
+
+    # Create dict for headers
+
+    data_header = {'headers': ['Date', 'Dawn', 'Dusk', 'Moon Rise', 'Moon Set']}
+    dark_header = {'headers': ['Date', 'Start', 'End', 'Duration']}
+
+    # Use Pandas to create a DataFrame from dict and append to Excel
+
+    df_data_header = pd.DataFrame.from_dict(data_header, orient='index')
+    df_data = pd.DataFrame.from_dict(a_days, orient='index')
+    df_dark_header = pd.DataFrame.from_dict(dark_header, orient='index')
+    df_dark = pd.DataFrame.from_dict(dark_times, orient='index')
+    # df_data_string = df_data.astype(str)
+
+    with pd.ExcelWriter('darkSkyTimes.xlsx') as writer:
+        df_dark_header.to_excel(writer, sheet_name='darkTimes', startrow=0, header=False, index=False)
+        df_dark.to_excel(writer, sheet_name='darkTimes', startrow=1, header=False, index=False)
+        df_data_header.to_excel(writer, sheet_name='rawData', startrow=0, header=False, index=False)
+        df_data.to_excel(writer, sheet_name='rawData', startrow=1, header=False, index=False)
+        # df_data_string.to_excel(writer, sheet_name='rawData', startrow=1, header=False, index=False)
 
 
 if __name__ == '__main__':
