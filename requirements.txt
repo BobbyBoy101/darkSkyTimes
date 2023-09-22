@@ -7,3 +7,6 @@ pytz==2023.3
 six==1.16.0
 XlsxWriter==3.1.2
 zope.interface==6.0
+
+tzlocal~=5.0.1
+pandas~=2.0.3

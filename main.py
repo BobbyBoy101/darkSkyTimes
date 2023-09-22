@@ -1,25 +1,21 @@
 import argparse
 import sys
-import xlsxwriter
 import ephem
 import pytz
 import datetime
 import tzlocal
 import pandas as pd
 
-from datetime import datetime as dt
 from datetime import timedelta
-from calendar import monthrange
-from openpyxl import Workbook
-from openpyxl.styles import numbers
 from dateutil import parser, tz
 from dateutil.rrule import rrule, DAILY
-from dateutil.relativedelta import relativedelta
 
 
 def sun_rise(lat, lon, day, tz, horizon=-18):
-    """To get the sun rise for today, we need to ask ephem for the previous rising of the sun starting with midnight
-    tomorrow in this timezone."""
+    """
+    To get the sun rise for today, we need to ask ephem for the previous
+    rising of the sun starting with midnight tomorrow in this timezone.
+    """
 
     # Make an observer
     obs = ephem.Observer()
@@ -42,8 +38,10 @@ def sun_rise(lat, lon, day, tz, horizon=-18):
 
 
 def sun_set(lat, lon, day, tz, horizon=-18):
-    """To get the sun set for today, we need to ask ephem the next setting of the sun starting with midnight today in
-    this timezone."""
+    """
+    To get the sun set for today, we need to ask ephem the next
+    setting of the sun starting with midnight today in this timezone.
+    """
 
     # Make an observer
     obs = ephem.Observer()
@@ -66,8 +64,10 @@ def sun_set(lat, lon, day, tz, horizon=-18):
 
 
 def moon_rise(lat, lon, day, tz, horizon=0):
-    """To get the moon rise for today, we need to ask ephem for the previous rising of the moon starting with
-    midnight tomorrow in this timezone."""
+    """
+    To get the moon rise for today, we need to ask ephem for the previous
+    rising of the moon starting with midnight tomorrow in this timezone.
+    """
 
     # Make an observer
     obs = ephem.Observer()
@@ -91,8 +91,10 @@ def moon_rise(lat, lon, day, tz, horizon=0):
 
 
 def moon_set(lat, lon, day, tz, horizon=0):
-    """To get the moon set for today, we need to ask ephem the next setting of the moon starting with midnight today
-    in this timezone."""
+    """
+    To get the moon set for today, we need to ask ephem the next
+    setting of the moon starting with midnight today in this timezone.
+    """
 
     # Make an observer
     obs = ephem.Observer()
@@ -131,6 +133,31 @@ class AstroDay:
         self.dawn = sun_rise(self.lat, self.lon, self.day, self.tz)
         self.dusk = sun_set(self.lat, self.lon, self.day, self.tz)
 
+    def better_format(self):
+        dt_fmt = "%I:%M %p %Z"
+
+        if self.dawn:
+            dawn_str = self.dawn.strftime(dt_fmt)
+        else:
+            dawn_str = ' -          '
+
+        if self.dusk:
+            dusk_str = self.dusk.strftime(dt_fmt)
+        else:
+            dusk_str = ' -          '
+
+        if self.moon_rise:
+            moon_rise_str = self.moon_rise.strftime(dt_fmt)
+        else:
+            moon_rise_str = ' -          '
+
+        if self.moon_set:
+            moon_set_str = self.moon_set.strftime(dt_fmt)
+        else:
+            moon_set_str = ' -          '
+
+        return [self.day.strftime("%m/%d/%y"), dawn_str, dusk_str, moon_rise_str, moon_set_str]
+
     def __str__(self):
         dt_fmt = "%I:%M %p %Z"
 
@@ -155,33 +182,6 @@ class AstroDay:
             moon_set_str = ' -          '
 
         return f'| {self.day.strftime("%m/%d/%y")} | {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'
-
-    '''
-    def as_list(self):
-        dt_fmt = "%I:%M %p %Z"
-
-        if self.dawn:
-            dawn_str = self.dawn.strftime(dt_fmt)
-        else:
-            dawn_str = ' -          '
-
-        if self.dusk:
-            dusk_str = self.dusk.strftime(dt_fmt)
-        else:
-            dusk_str = ' -          '
-
-        if self.moon_rise:
-            moon_rise_str = self.moon_rise.strftime(dt_fmt)
-        else:
-            moon_rise_str = ' -          '
-
-        if self.moon_set:
-            moon_set_str = self.moon_set.strftime(dt_fmt)
-        else:
-            moon_set_str = ' -          '
-
-        return [(self.day.strftime("%m/%d/%y")), self.dawn, {dusk_str}, {moon_rise_str}, {moon_set_str}]
-    '''
 
 
 # this should really be two 0 / 1 waveforms in utc, that's the right datastructure, and just poll as needed
@@ -252,11 +252,26 @@ class DarkTime:
             duration_str = ' -      '
 
         return f'| {self.day.strftime("%m/%d/%y")} | {start_str} | {end_str} | {duration_str} |'
-        # return f'[{self.day.strftime("%m/%d/%y")}, {start_str}, {end_str}, {duration_str}]'
+
+    def better_format(self):
+        if self.dark_time:
+            start_str = self.start.strftime("%I:%M %p %Z")
+
+            end_str = self.end.strftime("%I:%M %p %Z")
+            if self.end.date() != self.start.date():
+                end_str = self.end.strftime("%I:%M %p %Z +1")
+
+            duration_str = fmt_timedelta(self.duration).ljust(8, ' ')
+        else:
+            start_str = ' -          '
+            end_str = ' -             '
+            duration_str = ' -      '
+
+        return [self.day.strftime("%m/%d/%y"), start_str, end_str, duration_str]
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description='Generate audio file for a Ms. Reddit Youtube video')
+    parser = argparse.ArgumentParser(description='Generate darkSkyTimes Excel sheet')
     parser.add_argument('-lat', type=float, help='Observer Latitude')
     parser.add_argument('-lon', type=float, help='Observer Longitude')
     parser.add_argument('-start', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
@@ -271,40 +286,26 @@ def main(args_list):
     args = parse_args(args_list)
     args.tz = tz.gettz(args.tz)
 
-    # Construct Raw Data
-
+    # Construct Raw Data into dict
     a_days = {}
+    a_days_csv = {}
     for dt in rrule(DAILY, dtstart=args.start - timedelta(days=1), until=args.end + timedelta(days=1)):
         day = dt.date()
-        a_days[day] = AstroDay(args.lat, args.lon, day, args.tz)
-        # ad = AstroDay(args.lat, args.lon, day, args.tz)
-        # a_days[day] = ad.as_list()
+        astro_day1 = AstroDay(args.lat, args.lon, day, args.tz)
+        a_days[day] = astro_day1
+        a_days_csv[day] = astro_day1.better_format()
 
-    '''
-    Can't figure out a good way to get this dict into a better format. Right now it's:
-    
-    {day: '| {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'}
-    
-    but to make it better in excel, it needs to be like:
-    
-    {day: ['Date', 'Dawn', 'Dusk', 'Moon Rise', 'Moon Set']}
-    
-    I created a function in the AstroDay class to do this, but excel can't work with timezone aware datetimes.
-    Changing it to a str makes it super long in excel and you can't format it in the DataFrame for Pandas.
-    Having the list function return it like {dusk_str} shows up in excel as {'04:41 AM'}
-    with the curly brackets and quotes.
-    '''
-
-    # Construct Dark Times
-
+    # Construct Dark Times into dict
     dark_times = {}
+    dark_times_csv = {}
     for dt in rrule(DAILY, dtstart=args.start, until=args.end):
         today = dt.date()
         yesterday = today - timedelta(days=1)
         tomorrow = today + timedelta(days=1)
-
         dark_times[today] = DarkTime(a_days[yesterday], a_days[today], a_days[tomorrow])
+        dark_times_csv[today] = DarkTime(a_days[yesterday], a_days[today], a_days[tomorrow]).better_format()
 
+    # Print data to console
     print('+----------+--------------+--------------+--------------+--------------+')
     print('| Date     | Dawn         | Dusk         | Moon Rise    | Moon Set     |')
     print('+----------+--------------+--------------+--------------+--------------+')
@@ -325,35 +326,79 @@ def main(args_list):
 
     print('+----------+--------------+-----------------+----------+')
 
-    # Create dict for Excel headers
+    # Use Pandas to make things pretty :)
+    # Create DataFrames from the dicts
+    df_data = pd.DataFrame.from_dict(a_days_csv, orient='index')
+    df_dark = pd.DataFrame.from_dict(dark_times_csv, orient='index')
 
-    data_header = {'headers': ['Date', 'Dawn', 'Dusk', 'Moon Rise', 'Moon Set']}
-    dark_header = {'headers': ['Date', 'Start', 'End', 'Duration']}
+    # Create an Excel writer object
+    writer = pd.ExcelWriter('darkSkyTimes.xlsx', engine='xlsxwriter')
 
-    # Use Pandas to create DataFrames from the dicts
+    # Create Excel file with separate sheets for each DataFrame
+    df_dark.to_excel(writer, sheet_name='darkTimes', startrow=1, header=False, index=False)
+    df_data.to_excel(writer, sheet_name='rawData', startrow=1, header=False, index=False)
 
-    df_data_header = pd.DataFrame.from_dict(data_header, orient='index')
-    df_data = pd.DataFrame.from_dict(a_days, orient='index')
-    df_dark_header = pd.DataFrame.from_dict(dark_header, orient='index')
-    df_dark = pd.DataFrame.from_dict(dark_times, orient='index')
-    # df_data_string = df_data.astype(str)
+    # Get workbook/worksheet objects
+    workbook = writer.book
+    ws_dark = writer.sheets['darkTimes']
+    ws_raw = writer.sheets['rawData']
 
-    # Use Pandas to append the DataFrames to two separate sheets in the Excel file
+    # Define formats to use
+    header_format = workbook.add_format({
+        'bold': True,
+        'align': 'center_across',
+        'font_size': 15,
+        # 'bg_color': '#808080',   //too dark
+        'bg_color': '#D4D4D4',
+        'border': 1,
+    })
 
-    with pd.ExcelWriter('darkSkyTimes.xlsx') as writer:
-        df_dark_header.to_excel(writer, sheet_name='darkTimes', startrow=0, header=False, index=False)
-        df_dark.to_excel(writer, sheet_name='darkTimes', startrow=1, header=False, index=False)
-        df_data_header.to_excel(writer, sheet_name='rawData', startrow=0, header=False, index=False)
-        df_data.to_excel(writer, sheet_name='rawData', startrow=1, header=False, index=False)
-        # df_data_string.to_excel(writer, sheet_name='rawData', startrow=1, header=False, index=False)
+    center_format = workbook.add_format({
+        'align': 'center_across',
+        'font_size': 14,
+    })
+
+    # Set the column width for the dark_times_sheet and add the column headers
+    # ***There's probably a better way to do this?
+    dark_times_sheet = ws_dark
+    dark_times_sheet.set_column('A:A', 12, center_format)
+    dark_times_sheet.set_column('B:B', 17, center_format)
+    dark_times_sheet.set_column('C:C', 25, center_format)
+    dark_times_sheet.set_column('D:D', 14, center_format)
+    dark_times_sheet.write('A1', 'Date', header_format)
+    dark_times_sheet.write('B1', 'Start', header_format)
+    dark_times_sheet.write('C1', 'End', header_format)
+    dark_times_sheet.write('D1', 'Duration', header_format)
+
+    # Set the column width for the raw_data_sheet and add the column headers
+    # ***There's probably a better way to do this?
+    raw_data_sheet = ws_raw
+    raw_data_sheet.set_column('A:A', 12, center_format)
+    raw_data_sheet.set_column('B:E', 17, center_format)
+    raw_data_sheet.write('A1', 'Date', header_format)
+    raw_data_sheet.write('B1', 'Dawn', header_format)
+    raw_data_sheet.write('C1', 'Dusk', header_format)
+    raw_data_sheet.write('D1', 'Moon Rise', header_format)
+    raw_data_sheet.write('E1', 'Moon Set', header_format)
+
+    # Ctrl + S
+    workbook.close()
 
 
 if __name__ == '__main__':
     main(sys.argv[1:])
 
-    '''Need to fix logic:
+    '''
+    TO DO:
+    --Need to fix logic:
     On May 21, the DarkTimes output is setting the start time to 10:41 PM (Dusk),
     when it should be setting the start time to 11:22 PM (Moon Set)
-    
     I think it's the 'moon sets while sun is down' if statement on lines 199-208
-    that needs to be fixed'''
+    that needs to be fixed
+    
+    --Nicer Excel formatting:
+    Format alternating rows with dark/light colors to help with readability
+    
+    --Test various lat/long locations in various timezones to make sure anyone can use this
+    crux of the biscuit
+    '''
