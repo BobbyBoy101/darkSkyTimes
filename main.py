@@ -16,8 +16,10 @@ from dateutil import parser, tz
 from dateutil.rrule import rrule, DAILY
 from dateutil.relativedelta import relativedelta
 
+
 def sun_rise(lat, lon, day, tz, horizon=-18):
-    """To get the sun rise for today, we need to ask ephem for the previous rising of the sun starting with midnight tomorrow in this timezone."""
+    """To get the sun rise for today, we need to ask ephem for the previous rising of the sun starting with midnight
+    tomorrow in this timezone."""
 
     # Make an observer
     obs = ephem.Observer()
@@ -38,8 +40,10 @@ def sun_rise(lat, lon, day, tz, horizon=-18):
         return None
     return sun_rise
 
+
 def sun_set(lat, lon, day, tz, horizon=-18):
-    """To get the sun set for today, we need to ask ephem the next setting of the sun starting with midnight today in this timezone."""
+    """To get the sun set for today, we need to ask ephem the next setting of the sun starting with midnight today in
+    this timezone."""
 
     # Make an observer
     obs = ephem.Observer()
@@ -48,7 +52,7 @@ def sun_set(lat, lon, day, tz, horizon=-18):
     obs.horizon = str(horizon)
 
     midnight_today = datetime.datetime.combine(day, datetime.datetime.min.time(),
-                                                 tzinfo=tz)
+                                               tzinfo=tz)
     obs.date = ephem.Date(midnight_today)
 
     sun_set_unaware_dt = obs.next_setting(ephem.Sun(), use_center=True).datetime()
@@ -60,8 +64,10 @@ def sun_set(lat, lon, day, tz, horizon=-18):
         return None
     return sun_set
 
+
 def moon_rise(lat, lon, day, tz, horizon=0):
-    """To get the moon rise for today, we need to ask ephem for the previous rising of the moon starting with midnight tomorrow in this timezone."""
+    """To get the moon rise for today, we need to ask ephem for the previous rising of the moon starting with
+    midnight tomorrow in this timezone."""
 
     # Make an observer
     obs = ephem.Observer()
@@ -83,8 +89,10 @@ def moon_rise(lat, lon, day, tz, horizon=0):
         return None
     return moon_rise
 
+
 def moon_set(lat, lon, day, tz, horizon=0):
-    """To get the moon set for today, we need to ask ephem the next setting of the moon starting with midnight today in this timezone."""
+    """To get the moon set for today, we need to ask ephem the next setting of the moon starting with midnight today
+    in this timezone."""
 
     # Make an observer
     obs = ephem.Observer()
@@ -104,10 +112,12 @@ def moon_set(lat, lon, day, tz, horizon=0):
         return None
     return moon_set
 
+
 def fmt_timedelta(td):
     hour, rem = divmod(td.seconds, 3600)
     min, sec = divmod(rem, 60)
     return f'{hour}h {min}m'
+
 
 class AstroDay:
     def __init__(self, lat, lon, day, tz):
@@ -173,14 +183,15 @@ class AstroDay:
         return [(self.day.strftime("%m/%d/%y")), self.dawn, {dusk_str}, {moon_rise_str}, {moon_set_str}]
     '''
 
+
 # this should really be two 0 / 1 waveforms in utc, that's the right datastructure, and just poll as needed
 # dark times would then just be whenever both of them are 0
 class DarkTime:
     def __init__(
-        self,
-        yesterday: AstroDay,
-        today: AstroDay,
-        tomorrow: AstroDay
+            self,
+            yesterday: AstroDay,
+            today: AstroDay,
+            tomorrow: AstroDay
     ):
         self.day = today.day
         self.dark_time = False
@@ -210,13 +221,13 @@ class DarkTime:
                 self.end = min(tomorrow.dawn, tomorrow.moon_rise)
             # otherwise false
         else:
-            if today.moon_set < today.moon_rise: # moon looks like |---___---|
+            if today.moon_set < today.moon_rise:  # moon looks like |---___---|
                 # need dusk to be between moon rise and set
                 if today.moon_set < today.dusk < today.moon_rise:
                     self.dark_time = True
                     self.start = today.dusk
                     self.end = today.moon_rise
-            else: # moon looks like |___---___|
+            else:  # moon looks like |___---___|
                 # need dusk to not be between moon rise and set
                 if not (today.moon_set < today.dusk < today.moon_rise):
                     self.dark_time = True
@@ -263,19 +274,23 @@ def main(args_list):
     # Construct Raw Data
 
     a_days = {}
-    for dt in rrule(DAILY, dtstart=args.start-timedelta(days=1), until=args.end+timedelta(days=1)):
+    for dt in rrule(DAILY, dtstart=args.start - timedelta(days=1), until=args.end + timedelta(days=1)):
         day = dt.date()
         a_days[day] = AstroDay(args.lat, args.lon, day, args.tz)
         # ad = AstroDay(args.lat, args.lon, day, args.tz)
         # a_days[day] = ad.as_list()
 
     '''
-    Can't figure out a good way to get this dict into a better format. Right now it's
-    {day: 'all times together'} 
+    Can't figure out a good way to get this dict into a better format. Right now it's:
+    
+    {day: '| {dawn_str} | {dusk_str} | {moon_rise_str} | {moon_set_str} |'}
+    
     but to make it better in excel, it needs to be like:
+    
     {day: ['Date', 'Dawn', 'Dusk', 'Moon Rise', 'Moon Set']}
+    
     I created a function in the AstroDay class to do this, but excel can't work with timezone aware datetimes.
-    Changing it to a str makes it super long in excel and you can't format it in the DataFrame.
+    Changing it to a str makes it super long in excel and you can't format it in the DataFrame for Pandas.
     Having the list function return it like {dusk_str} shows up in excel as {'04:41 AM'}
     with the curly brackets and quotes.
     '''
@@ -310,18 +325,20 @@ def main(args_list):
 
     print('+----------+--------------+-----------------+----------+')
 
-    # Create dict for headers
+    # Create dict for Excel headers
 
     data_header = {'headers': ['Date', 'Dawn', 'Dusk', 'Moon Rise', 'Moon Set']}
     dark_header = {'headers': ['Date', 'Start', 'End', 'Duration']}
 
-    # Use Pandas to create a DataFrame from dict and append to Excel
+    # Use Pandas to create DataFrames from the dicts
 
     df_data_header = pd.DataFrame.from_dict(data_header, orient='index')
     df_data = pd.DataFrame.from_dict(a_days, orient='index')
     df_dark_header = pd.DataFrame.from_dict(dark_header, orient='index')
     df_dark = pd.DataFrame.from_dict(dark_times, orient='index')
     # df_data_string = df_data.astype(str)
+
+    # Use Pandas to append the DataFrames to two separate sheets in the Excel file
 
     with pd.ExcelWriter('darkSkyTimes.xlsx') as writer:
         df_dark_header.to_excel(writer, sheet_name='darkTimes', startrow=0, header=False, index=False)
@@ -333,3 +350,10 @@ def main(args_list):
 
 if __name__ == '__main__':
     main(sys.argv[1:])
+
+    '''Need to fix logic:
+    On May 21, the DarkTimes output is setting the start time to 10:41 PM (Dusk),
+    when it should be setting the start time to 11:22 PM (Moon Set)
+    
+    I think it's the 'moon sets while sun is down' if statement on lines 199-208
+    that needs to be fixed'''
