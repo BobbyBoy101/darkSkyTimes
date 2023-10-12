@@ -229,10 +229,11 @@ class DarkTime:
                     self.end = today.moon_rise
             else:  # moon looks like |___---___|
                 # need dusk to not be between moon rise and set
-                if not (today.moon_set < today.dusk < today.moon_rise):
-                    self.dark_time = True
-                    self.start = today.dusk
-                    self.end = min(tomorrow.dawn, tomorrow.moon_rise)
+                if not today.moon_set > today.dusk:
+                    if not (today.moon_set < today.dusk < today.moon_rise):
+                        self.dark_time = True
+                        self.start = today.dusk
+                        self.end = min(tomorrow.dawn, tomorrow.moon_rise)
 
         if self.dark_time:
             self.duration = self.end - self.start
@@ -390,15 +391,16 @@ if __name__ == '__main__':
 
     '''
     TO DO:
-    --Need to fix logic:
-    On May 21, the DarkTimes output is setting the start time to 10:41 PM (Dusk),
-    when it should be setting the start time to 11:22 PM (Moon Set)
-    I think it's the 'moon sets while sun is down' if statement on lines 199-208
-    that needs to be fixed
+    --Test various lat/long locations in various timezones to make sure anyone can use this
+        --Tested with Atascadero, CA (UTC-8)
+            35.4490
+            -120.6165
+            Appears to work, but displays in MDT
+    
+    --How to make this easily deployable with simple GUI for user input?
     
     --Nicer Excel formatting:
     Format alternating rows with dark/light colors to help with readability
     
-    --Test various lat/long locations in various timezones to make sure anyone can use this
-    crux of the biscuit
+    --Check if inputs are within a permitted range.
     '''
