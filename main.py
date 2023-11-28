@@ -396,6 +396,10 @@ if __name__ == '__main__':
             35.4490
             -120.6165
             Appears to work, but displays in MDT
+        --When setting params to include tz 
+            -lat 35.4409 -lon -120.6165 -start 11/1/2023 -end 11/9/2023 -tz US/Pacific
+            It throws TypeError: '<' not supported between instances of 'NoneType' and 'datetime.datetime'
+            for line 221. It looks like it thinks the moon doesn't rise on 11/3 & 11/4. Moon doesn't rise on 11/4.
     
     --How to make this easily deployable with simple GUI for user input?
     
