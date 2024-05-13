@@ -272,7 +272,7 @@ class DarkTime:
 
 
 def parse_args(args):
-    parser = argparse.ArgumentParser(description='Generate darkSkyTimes Excel sheet')
+    parser = argparse.ArgumentParser(description='Generate darkSkyTimes')
     parser.add_argument('-lat', type=float, help='Observer Latitude')
     parser.add_argument('-lon', type=float, help='Observer Longitude')
     parser.add_argument('-start', type=lambda s: datetime.datetime.strptime(s, '%m/%d/%Y').date(),
@@ -349,7 +349,6 @@ def main(args_list):
         'bold': True,
         'align': 'center_across',
         'font_size': 15,
-        # 'bg_color': '#808080',   //too dark
         'bg_color': '#D4D4D4',
         'border': 1,
     })
