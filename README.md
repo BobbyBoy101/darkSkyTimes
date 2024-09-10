@@ -8,7 +8,7 @@ The darkSkyTimes repository allows users to effortlessly determine the optimal m
 
 ***Where this project is now***
 
-Currently this project generates a .xlsx file that contains two sheets. The first sheet contains the ideal dark sky times and duration for the date range and location specified. The second sheet contains all of the raw data used to calculate this information.
+Currently this project displays the data in the terminal window and also generates a .xlsx file that contains two sheets. The first sheet contains the ideal dark sky times and duration for the date range and location specified. The second sheet contains all of the raw data used to calculate this information.
 
 Ideal dark times with duration example (sheet1 in .xlsx file):
 
@@ -18,7 +18,13 @@ Raw data output example (sheet2 in .xlsx file):
 
 ![Current darkSkyTimes](RawData.jpg)
 
-This data is also displayed in the terminal window:
+Ideal dark times with duration displayed in terminal (need to fix the padding):
+
+![Current darkSkyTimes](CalculatedOutputTerminal.png)
+
+Raw data displayed in terminal:
+
+![Current darkSkyTimes](RawDataTerminal.png)
 
 
 ## Getting Started
